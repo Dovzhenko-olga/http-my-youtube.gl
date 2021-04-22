@@ -2,9 +2,11 @@
 const gloAcademyList = document.querySelector('.glo-academy-list');
 const trendingList = document.querySelector('.trending-list');
 const musicList = document.querySelector('.music-list');
+const navMenuMore = document.querySelector('.nav-menu-more');
+const showMore = document.querySelector('.show-more');
+const formSearch = document.querySelector('.form-search');
 
 const createCard = (dataVideo) => {
-
   const imgUrl = dataVideo.snippet.thumbnails.high.url;
   const videoId = typeof dataVideo.id === 'string'?
   dataVideo.id :
@@ -29,7 +31,7 @@ const createCard = (dataVideo) => {
             <span class="video-counter">
                 ${
                   viewCount ?
-                  `<span class="video-views">${viewCount}</span>` :
+                  `<span class="video-views">${parseInt(viewCount / 1000)}k views</span>` :
                   ''
                 }
                 <span class="video-date">${new Date(dateVideo).toLocaleString("ru-Ru")}</span>
@@ -54,9 +56,6 @@ const createList = (wrapper, listVideo) => {
 
 };
 
-createList(gloAcademyList, gloAcademy);
-createList(trendingList, trending);
-createList(musicList, music);
 
 // youtube API
 
@@ -64,13 +63,11 @@ const authBtn = document.querySelector('.auth-btn');
 const userAvatar = document.querySelector('.user-avatar');
 
 const handleSuccessAuth = data => {
-  console.log(data);
+  // console.log(data);
   authBtn.classList.add('hide');
   userAvatar.classList.remove('hide');
   userAvatar.src = data.getImageUrl();
   userAvatar.alt = data.getName();
-
-  getChanel();
 };
 
 const handleNoAuth = () => {
@@ -106,15 +103,15 @@ function initClient() {
       'clientId': CLIENT_ID,
       'scope': 'https://www.googleapis.com/auth/youtube.readonly',
       'discoveryDocs': ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
-  }).then(() => {
+  })
+  .then(() => {
     updateStatusAuth(gapi.auth2.getAuthInstance())
     authBtn.addEventListener('click', handleAuth)
     userAvatar.addEventListener('click', handleSignout)
-  // })
-  // .catch(() => {
-  //   authBtn.removeEventListener('click', handleAuth)
-  //   userAvatar.removeEventListener('click', handleSignout)
-  //   alert('Авторизация невозможна')
+  })
+  .then(loadScreen)
+  .catch(e => {
+    console.warn(e)
   });
 }
 
@@ -127,4 +124,89 @@ const getChanel = () => {
   }).execute((response) =>{
     console.log(response);
   })
+};
+
+
+const requestVideos = (channelId, cb, maxResults = 6) => {
+   gapi.client.youtube.search.list({
+     part: 'snippet',
+     channelId,
+     maxResults,
+     order: 'date',
+   }).execute(response => {
+     cb(response.items);
+   })
 }
+
+
+const requestTrending = (cb, maxResults = 6) => {
+  gapi.client.youtube.videos.list({
+    part: 'snippet, statistics',
+    chart: 'mostPopular',
+    regionCode: "RU",
+    maxResults,
+  }).execute(response => {
+    cb(response.items);
+  })
+}
+
+const requestMusic = (cb, maxResults = 6) => {
+  gapi.client.youtube.videos.list({
+    part: 'snippet, statistics',
+    chart: 'mostPopular',
+    regionCode: "RU",
+    maxResults,
+    videoCategoryId: '10',
+  }).execute(response => {
+    cb(response.items);
+  })
+}
+
+const requestSearch = (searchText, cb, maxResults = 6) => {
+  gapi.client.youtube.search.list({
+     part: 'snippet',
+     q: searchText,
+     maxResults,
+     order: 'relevance',
+   }).execute(response => {
+     cb(response.items);
+   })
+}
+
+const requestSubscriptions = (cb, maxResults = 8) => {
+  gapi.client.youtube.subscriptions.list({
+    part: 'snippet',
+    mine: true,
+    maxResults,
+    order: 'unread',
+  }).execute(response => {
+     cb(response.items);
+   })
+}
+
+const loadScreen = () => {
+  requestVideos('UCVswRUcKC-M35RzgPRv8qUg', data => {
+  createList(gloAcademyList, data);
+  })
+
+  requestTrending(data => {
+  createList(trendingList, data);
+  })
+
+  requestMusic( data => {
+  createList(musicList, data);
+  })
+};
+
+
+showMore.addEventListener('click', (e) => {
+  e.preventDefault();
+  navMenuMore.classList.toggle('nav-menu-more-show')
+})
+
+formSearch.addEventListener('submit', e => {
+  e.preventDefault();
+  requestSearch(formSearch.elements.search.value, data => {
+    createList(gloAcademyList, data);
+  });
+})

@@ -277,6 +277,7 @@ button {
   overflow: hidden;
   border-radius: 14px;
   position: relative;
+  background-color: #00000070;
 }
 
 .thumbnail {

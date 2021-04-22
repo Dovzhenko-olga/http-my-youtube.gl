@@ -155,7 +155,6 @@ function init() {
 
 
 	const openYoutubeModal = e => {
-			e.preventDefault();
 			const target = e.target.closest('.youtube-modal');
 			if (!target) return;
 
@@ -165,6 +164,7 @@ function init() {
 
 			if (idVideo.length === 0) return;
 
+			e.preventDefault();
 
 			animation(overlay, {
 					start: [['display', 'block']],
